@@ -1,6 +1,10 @@
 # Graphic Pipeline
 <small>Need Revision</small>
 
+Source: 
+* [learnOpenGL](https://learnopengl.com/Getting-started/Hello-Triangle)
+* [The Cherno](https://www.youtube.com/@TheCherno)
+
 <u>Goal</u>: Transform 3D coordinates into 2D pixels.
 
 1. Transform 3D into 2D coordinates.

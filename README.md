@@ -10,9 +10,6 @@ Source:
 1. Transform 3D into 2D coordinates.
 2. Transform 2D coordinates into actual pixels.
 
-These are done using programs within OpenGL called **shaders** using `GLSL` language.
-
-We can configure some shaders to our own liking (Blue).
 ![Pipeline](./img/pipeline.png)
 
 
@@ -185,5 +182,244 @@ There are more types, but we don't deal with them as often as these two.
 Still work in the same way with OpenGL's state machine, we just select a specific shader to use. 
 
 **Shader source code**
-1. Hard coding in the C++ file (using `string`)
+1. Hard coding in the C++ file as `string` or `const char*`
 2. Read from a file.
+
+The syntax are similar to C/C++ called `GLSL`
+
+1. Vertex Shader
+
+```c
+#version 330 core
+layout (location = 0) in vec3 aPos;
+void main()
+{
+    gl_Position = vec4(aPos, 1.0f);
+}
+```
+* `#version 330 core` : what version of GLSL version and profile to use.
+* `layout (location = 0) in vec3 aPos;`
+    * `location = 0` refers to the index 0 from our `glVertexAttribPointer()`
+    * `in` : This is input
+    * `vec3` is a vector containing 3 values. (remember that we got x, y, z coordinates)
+    * `aPos`: We basically passed those input values to this variable
+* `main()`: is main()
+* `gl_Position` : Where the pixels will be on-screen (we defined it in `float vertices[]` already so we just directly copy those values into `gl_Position`). [References](https://docs.gl/el3/gl_Position)
+
+2. Fragment Shader
+
+```c
+#version 330 core
+out vec4 FragColor;
+void main()
+{
+    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
+}
+```
+* `out`: refers to this being output
+
+We output RGBA values, as seen from the variable being `vec4`
+
+#### Program 
+
+Having *vertex* and *fragment* shaders defined doesn't mean that we can immediately use them. We have to make a **shader program** and *link* our shaders before we can use them.
+
+Creating shaders and a program:
+
+1. Vertex Shader
+```C++
+const char *vertexShaderSource = "#version 330 core\n"
+                                    "layout (location = 0) in vec3 aPos;\n" // index 0
+                                    "void main()\n"
+                                    "{\n"
+                                    "   gl_Position = vec4(aPos, 1.0f);\n"
+                                    "}\0";
+
+unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+glCompileShader(vertexShader);
+
+// Error checking (optional but recommended)
+int success;
+char infoLog[512];
+glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+if (!success)
+{
+    glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                << infoLog << std::endl;
+}
+```
+
+2. Fragment Shader
+```C++
+const char *fragmentShaderSource = "#version 330 core\n"
+                                    "out vec4 FragColor;\n"
+                                    "void main()\n"
+                                    "{\n"
+                                    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+                                    "}\0";
+unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+glCompileShader(fragmentShader);
+glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+if (!success)
+{
+    glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+                << infoLog << std::endl;
+}
+```
+
+3. Shader Program
+```C++
+// Shader program
+unsigned int shaderProgram = glCreateProgram();
+glAttachShader(shaderProgram, vertexShader);
+glAttachShader(shaderProgram, fragmentShader);
+glLinkProgram(shaderProgram);
+glValidateProgram(shaderProgram);
+
+// Validate program
+glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+if (!success)
+{
+    glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::PROGRAM::COMPILATION_FAILED\n"
+                << infoLog << std::endl;
+}
+
+// Now that we already got the shaders in the program we can just discard these
+glDeleteShader(vertexShader);
+glDeleteShader(fragmentShader);
+```
+
+Now we have to select a shader program before we can do any draw calls:
+```C++
+glUseProgram(shaderProgram);
+```
+
+## Drawing
+We usually use one of two commands for drawing:
+`glDrawArrays` or `glDrawElements`
+
+We use `glDrawElements` when we have **index buffer** specifying the order to draw vertices. (which we don't use right now).
+
+For simple primitives:
+```C++
+void glDrawArrays(	GLenum mode,
+ 	GLint first,
+ 	GLsizei count);
+```
+* `first`: The starting index in the enabled arrays.
+* `count`: The number of indexes to render.
+
+
+## Summary:
+
+For a shape to be rendered we need to:
+1. Generate and bind a **Vertex Array Object**
+```C++
+unsigned int VAO;
+glGenVertexArrays(1, &VAO);
+glBindVertexArray(VAO);
+```
+
+2. Generate and bind a **Vertex Buffer** (VBO)
+```C++
+unsigned int vBuffer;
+glGenBuffers(1, &vBuffer);
+glBindBuffer(GL_ARRAY_BUFFER, vBuffer);
+```
+
+3. Pass vertices to the currently bound vertex buffer:
+```C++
+glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+```
+
+4. Configure and tell OpenGL how to interpret the vertices:
+```C++
+glVertexAttribPointer(0, 3 , GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+glEnableVertexAttribArray(0);
+```
+
+5. Create shaders
+```C++
+// Vertex Shader
+const char *vertexShaderSource = "#version 330 core\n"
+                                    "layout (location = 0) in vec3 aPos;\n" // layout (location = 0) means index 0 from glVertexAttribPointer() and copied it into aPos variable
+                                    "void main()\n"
+                                    "{\n"
+                                    "   gl_Position = vec4(aPos, 1.0f);\n"
+                                    "}\0";
+
+unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+glCompileShader(vertexShader);
+
+// Error checking
+int success;
+char infoLog[512];
+glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+if (!success)
+{
+    glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                << infoLog << std::endl;
+}
+
+// fragment shader
+const char *fragmentShaderSource = "#version 330 core\n"
+                                    "out vec4 FragColor;\n"
+                                    "void main()\n"
+                                    "{\n"
+                                    "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+                                    "}\0";
+unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+glCompileShader(fragmentShader);
+glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+if (!success)
+{
+    glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+                << infoLog << std::endl;
+}
+```
+
+6. Create program:
+```C++
+// Shader program
+unsigned int shaderProgram = glCreateProgram();
+glAttachShader(shaderProgram, vertexShader);
+glAttachShader(shaderProgram, fragmentShader);
+glLinkProgram(shaderProgram);
+glValidateProgram(shaderProgram);
+
+// Validate program
+glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+if (!success)
+{
+    glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::PROGRAM::COMPILATION_FAILED\n"
+                << infoLog << std::endl;
+}
+
+// Now that we already got the shaders in the program we can
+glDeleteShader(vertexShader);
+glDeleteShader(fragmentShader);
+```
+
+7. Draw (in the render loop):
+```C++
+// Use shader program
+glUseProgram(shaderProgram);
+
+// Make sure that the wanted vertex array and vertex buffer are correctly bound
+glBindVertexArray(VAO);
+glBindBuffer(GL_ARRAY_BUFFER, vBuffer);
+
+// Draw the shape
+glDrawArrays(GL_TRIANGLES, 0, 3); 
+```
+Note: We usually do the draw calls after `glClear()` but before `glfwPollEvents();` and `glfwSwapBuffers(window);`

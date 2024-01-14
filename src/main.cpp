@@ -111,7 +111,7 @@ int main()
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
     glLinkProgram(shaderProgram);
-    glUseProgram(shaderProgram);
+    glValidateProgram(shaderProgram);
 
     // Validate program
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
@@ -140,6 +140,8 @@ int main()
 
         // Drawing
         // Draw the current buffer bounded.
+        glBindVertexArray(VAO);
+        glBindBuffer(GL_ARRAY_BUFFER, vBuffer);
         glDrawArrays(GL_TRIANGLES, 0, 3); // If we don't have an Index Buffer
         // glDrawElements(GL_TRIANGLES, 3, NULL); // If we use index Buffer
 

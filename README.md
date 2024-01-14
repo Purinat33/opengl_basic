@@ -120,6 +120,56 @@ glEnableVertexAttribArray(2);
 
 `glEnableVertexAttribArray(GLuint index)` basically enables attribute with index = `index` to be used.
 
+
+### VBO and VAO **buffers**
+As we can see from the above section: Vertex Buffer contains vertices data and we can just bind specific buffer before we perform draw calls. These types of buffers are called **Vertex Buffer Objects** (VBO).
+
+We then use `glVertexAttribPointer()` to tell OpenGL how to layout/interpret the Vertex data (from the Buffer), but we need to call `glVertexAttribPointer()` everytime we bind a different vertex buffer. For reusability of `glVertexAttribPointer` we use **Vertex Array Object** or **VAO** to store those pointer data.
+
+![VAO and VBO](./img/vertex_array_objects.png)
+
+So in the future, we can just bind a different VAO if we want to use different settings.
+```C++
+// This must be called before we create any vertex buffer
+unsigned int VAO;
+glGenVertexArrays(1, &VAO);
+glBindVertexArray(VAO);
+```
+
+It is important that a Vertex Array Object be bound before we bound a Vertex Buffer. Since any `glVertexAttribPointer` called after binding a vertex buffer object will be stored in the currently bound VAO.
+
+Overview of steps:
+```C++
+// After initializing OpenGL contexts and windows
+unsigned int VAO_1;
+glGenVertexArrays(1, &VAO_1); 
+glBindVertexArray(VAO_1); // Any subsequent glVertexAttribPointer will be stored in this vertex array
+
+float vertices[] = {
+    1.f, 1.f, 1.f,
+    1.f, 1.f, 1.f,
+    1.f, 1.f, 1.f
+};
+
+unsigned int vBuffer{};   
+glGenBuffers(1, &vBuffer); 
+glBindBuffer(GL_ARRAY_BUFFER, vBuffer); // data will be stored in this buffer
+
+// Passing the data to the current buffer (ID vBuffer)
+glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)(0 * sizeof(float)));
+glEnableVertexAttribArray(0);  // This configuration is now in VAO_1 vertex object
+// ...
+// Draw calls
+// Set current setting (or binding of Vertex array)
+glBindVertexArray(VAO_1); 
+// Set current buffer 
+glBindBuffer(GL_ARRAY_BUFFER, vBuffer);
+// draw()
+```
+
+
 ### Shaders
 
 A shader is a **program** that runs on the GPU. (Not to be confused with light and shadows).

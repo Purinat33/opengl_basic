@@ -31,15 +31,23 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glViewport(0,0,1080,720);
 
+
+
+    float vertices[] = {
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        0.0f, 0.5f, 0.0f};
+
+    // VAO 
+    // You have to specify this (and before any buffers creation) to make it work
+    unsigned int VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    // Buffers
     unsigned int vBuffer{}; // Buffer that will contain the vertices
     glGenBuffers(1, &vBuffer); // generating a buffer and getting an ID associated with this buffer (value stored in vBuffer), so when we do drawing we can just specify "buffer no. 5" etc.
     glBindBuffer(GL_ARRAY_BUFFER, vBuffer); // Selecting the buffer as current (binding), think of it as selecting 'buffer' layer in photoshop
-
-    float vertices[] = {
-        -0.5f, -0.5f,
-        0.5f, -0.5f,
-        0.0f, 0.5f
-    };
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     // We have given the data to OpenGL
@@ -52,17 +60,17 @@ int main()
     //                            GLsizei stride,
     //                            const GLvoid *pointer);
     
-    glVertexAttribPointer(0, 2 , GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3 , GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     // Enable index 0
     glEnableVertexAttribArray(0);
 
     // Shader
     // Vertex Shader
     const char *vertexShaderSource = "#version 330 core\n"
-                                     "layout (location = 0) in vec2 aPos;\n" // layout (location = 0) means index 0 from glVertexAttribPointer() and copied it into aPos variable
+                                     "layout (location = 0) in vec3 aPos;\n" // layout (location = 0) means index 0 from glVertexAttribPointer() and copied it into aPos variable
                                      "void main()\n"
                                      "{\n"
-                                     "   gl_Position = vec4(aPos, 0.f, 1.0f);\n"
+                                     "   gl_Position = vec4(aPos, 1.0f);\n"
                                      "}\0";
 
     unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -85,7 +93,7 @@ int main()
                                         "out vec4 FragColor;\n"
                                         "void main()\n"
                                         "{\n"
-                                        "   FragColor = vec4(0.3f, 0.5f, 0.2f, 1.0f);\n"
+                                        "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
                                         "}\0";
     unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
@@ -123,7 +131,7 @@ int main()
         processInput(window);
 
         // glClearColor(0.f, 0.f, 1.f, 1.f);
-        glClearColor(0.4f, 0.4f, 0.1f, 1.0f);
+        glClearColor(0.1f, 0.4f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
 
@@ -132,7 +140,7 @@ int main()
 
         // Drawing
         // Draw the current buffer bounded.
-        glDrawArrays(GL_TRIANGLES, 0, 6); // If we don't have an Index Buffer
+        glDrawArrays(GL_TRIANGLES, 0, 3); // If we don't have an Index Buffer
         // glDrawElements(GL_TRIANGLES, 3, NULL); // If we use index Buffer
 
         glfwPollEvents();

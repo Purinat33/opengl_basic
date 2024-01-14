@@ -31,29 +31,14 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glViewport(0,0,1080,720);
 
-    const char *vertexShaderSource = "#version 330 core\n"
-                                     "layout (location = 0) in vec3 aPos;\n" // vec3 because 3d coordinate
-                                     "void main()\n"
-                                     "{\n"
-                                     "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0f);\n"
-                                     "}\0";
-
-    const char *fragmentShaderSource = "#version 330 core\n"
-                                       "out vec4 FragColor;\n" // vec3 because 3d coordinate
-                                       "void main()\n"
-                                       "{\n"
-                                       "   FragColor = vec4(1.0f, 0.7f, 0.3f, 1.0f);\n"
-                                       "}\0";
-
-    GLuint vBuffer{}; // Buffer that will contain the vertices
+    unsigned int vBuffer{}; // Buffer that will contain the vertices
     glGenBuffers(1, &vBuffer); // generating a buffer and getting an ID associated with this buffer (value stored in vBuffer), so when we do drawing we can just specify "buffer no. 5" etc.
     glBindBuffer(GL_ARRAY_BUFFER, vBuffer); // Selecting the buffer as current (binding), think of it as selecting 'buffer' layer in photoshop
- 
-    float vertices[]{
-        // Position vertex
-        -0.5f, -0.5f, 0.f,
-        0.f, 0.5f, 0.f,
-        0.5f, -0.5f, 0.f
+
+    float vertices[] = {
+        -0.5f, -0.5f,
+        0.5f, -0.5f,
+        0.0f, 0.5f
     };
 
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -66,30 +51,88 @@ int main()
     //                            GLboolean normalized,
     //                            GLsizei stride,
     //                            const GLvoid *pointer);
-    // @param
-    // index:       pecifies the index of the generic vertex attribute to be modified.
-    //              e.g. (index 0 for position, 1 for texture coordinate, 2 is color etc).
-    // size:        how many data per vertex (size is 3 for our vertices[] because 3 per vertex)
-    // type:        data type
-    // normalized:  do we want the value to be reduced to between -1 to 1 ? (color 0-255)
-    // stride:      The amount of bytes between each vertex of the same type (3 floats of position) 
-    //              Important in case our vertices[] contain vertex of other type as well (color etc.)
-    // pointer:     offset to the start of the vertex of same type (0 bytes in is position immediately)
-
-    glVertexAttribPointer(0, 3 , GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    
+    glVertexAttribPointer(0, 2 , GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     // Enable index 0
     glEnableVertexAttribArray(0);
+
+    // Shader
+    // Vertex Shader
+    const char *vertexShaderSource = "#version 330 core\n"
+                                     "layout (location = 0) in vec2 aPos;\n" // layout (location = 0) means index 0 from glVertexAttribPointer() and copied it into aPos variable
+                                     "void main()\n"
+                                     "{\n"
+                                     "   gl_Position = vec4(aPos, 0.f, 1.0f);\n"
+                                     "}\0";
+
+    unsigned int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    // Error checking
+    int success;
+    char infoLog[512];
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n"
+                  << infoLog << std::endl;
+    }
+
+    // fragment shader
+    const char *fragmentShaderSource = "#version 330 core\n"
+                                        "out vec4 FragColor;\n"
+                                        "void main()\n"
+                                        "{\n"
+                                        "   FragColor = vec4(0.3f, 0.5f, 0.2f, 1.0f);\n"
+                                        "}\0";
+    unsigned int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success)
+    {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n"
+                  << infoLog << std::endl;
+    }
+
+    // Shader program
+    unsigned int shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+    glUseProgram(shaderProgram);
+
+    // Validate program
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success)
+    {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cout << "ERROR::SHADER::PROGRAM::COMPILATION_FAILED\n"
+                  << infoLog << std::endl;
+    }
+
+    // Now that we already got the shaders in the program we can
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
 
     while (!glfwWindowShouldClose(window))
     {
         processInput(window);
 
         // glClearColor(0.f, 0.f, 1.f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0.4f, 0.4f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        
+
+        // Use shader program
+        glUseProgram(shaderProgram);
 
         // Drawing
         // Draw the current buffer bounded.
-        glDrawArrays(GL_TRIANGLES, 0, 3); // If we don't have an Index Buffer
+        glDrawArrays(GL_TRIANGLES, 0, 6); // If we don't have an Index Buffer
         // glDrawElements(GL_TRIANGLES, 3, NULL); // If we use index Buffer
 
         glfwPollEvents();
@@ -97,7 +140,7 @@ int main()
     }
 
     // Unbinding buffer (no buffer selected)
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glfwTerminate();
     return 0;

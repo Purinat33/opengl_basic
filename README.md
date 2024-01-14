@@ -45,12 +45,12 @@ float vertices[]{
 
 // Create a buffer and getting the ID of the generated buffer
 unsigned int vBuffer{};     // unsigned int to hold the ID of the buffer that will be generated
-glGenBuffer(1, &vBuffer);   // Now we have a unique ID (vBuffer) tied to the generated buffer here
+glGenBuffers(1, &vBuffer);   // Now we have a unique ID (vBuffer) tied to the generated buffer here
                             // (We work with ID and not name)
 
 // Now we need to select (BIND) the buffer to be the current one (via ID)
 // Like telling the draw-command "Select buffer ID vBuffer" 
-glBindBuffers(GL_ARRAY_BUFFER, vBuffer); // Binding vBuffer to be the current selected/used buffer
+glBindBuffer(GL_ARRAY_BUFFER, vBuffer); // Binding vBuffer to be the current selected/used buffer
 
 // Passing the data to the current buffer (ID vBuffer)
 glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -119,3 +119,21 @@ glEnableVertexAttribArray(2);
 ```
 
 `glEnableVertexAttribArray(GLuint index)` basically enables attribute with index = `index` to be used.
+
+### Shaders
+
+A shader is a **program** that runs on the GPU. (Not to be confused with light and shadows).
+
+Important Shaders:
+
+1. **Vertex Shaders**: Called once for each **vertex** in the vertices. Tell OpenGL where you want the vertex to be on the screen. Will take in the data/pointers specify in `glVertexAttribPointer()` and accessed via the `index` we specified.
+
+2. **Fragment/Pixels Shaders**: Called once for each **pixel** for coloring/rasterization (e.g. lighting).
+
+There are more types, but we don't deal with them as often as these two.
+
+Still work in the same way with OpenGL's state machine, we just select a specific shader to use. 
+
+**Shader source code**
+1. Hard coding in the C++ file (using `string`)
+2. Read from a file.
